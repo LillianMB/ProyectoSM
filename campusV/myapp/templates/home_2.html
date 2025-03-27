@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página con FullCalendar y Modales</title>
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS para los modales -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #calendar {
+            max-width: 30%;
+            margin: 0 auto;
+        }
+        .modal-content {
+            padding: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .grafica-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .grafica {
+            width: 50%;
+        }
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body>
+
+     <!-- Menú de navegación -->
+     <div class="navbar">
+        <a href="#Grupos">Grupos</a>
+        <a href="#calendario">Calendario</a>
+        <a href="#Alumnos">Alumnos</a>
+        <a href="#Actividades">Actividades</a>
+    </div>
+
+    <!-- Botón de Cerrar Sesión -->
+    <button class="btn btn-danger logout-btn" onclick="cerrar_sesion()">Cerrar Sesión</button>
+
+    <!-- Primera sección: Tabla de grupos con botón para abrir modal -->
+    <div id="Grupos" class="section"></div>
+        <h2>Lista de Grupos</h2>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre del Grupo</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Grupo A</td>
+                    <td>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGrupo" onclick="mostrarTabla('tablaGrupoA', [80, 60, 90])">
+                            Ver Detalles
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Grupo B</td>
+                    <td>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGrupo" onclick="mostrarTabla('tablaGrupoB', [75, 85, 50])">
+                            Ver Detalles
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal para detalles del grupo -->
+    <div class="modal fade" id="modalGrupo" tabindex="-1" aria-labelledby="modalGrupoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalGrupoLabel">Detalles del Grupo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="grafica-container">
+                        <!-- Tabla de alumnos -->
+                        <div>
+                            <!-- Tabla para Grupo A -->
+                            <div id="tablaGrupoA" class="grupo-tabla">
+                                <h6>Grupo A</h6>
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Alumno</th>
+                                            <th>Actividad Terminada (%)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Juan Pérez</td>
+                                            <td>80%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>María López</td>
+                                            <td>60%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Carlos Sánchez</td>
+                                            <td>90%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- Tabla para Grupo B -->
+                            <div id="tablaGrupoB" class="grupo-tabla hidden">
+                                <h6>Grupo B</h6>
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Alumno</th>
+                                            <th>Actividad Terminada (%)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Ana Gómez</td>
+                                            <td>75%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Luis Ramírez</td>
+                                            <td>85%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Sofía Torres</td>
+                                            <td>50%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Gráfica de pastel -->
+                        <div class="grafica">
+                            <canvas id="graficaPastel"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Segunda sección: Calendario de FullCalendar -->
+    <div id="Calendario" class="section"></div>
+        <h2>Calendario</h2>
+        <div id="calendar"></div>
+    </div>
+
+    <!-- Tercera sección: Botón para abrir modal de alumnos -->
+    <div id="Alumnos" class="section"></div>
+        <h2>Alumnos</h2>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAlumnos">
+            Ver Alumnos
+        </button>
+    </div>
+
+    <!-- Modal para ver alumnos -->
+    <div class="modal fade" id="modalAlumnos" tabindex="-1" aria-labelledby="modalAlumnosLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalAlumnosLabel">Lista de Alumnos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Alumno</th>
+                                <th>Actividad Terminada (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Juan Pérez</td>
+                                <td>80%</td>
+                            </tr>
+                            <tr>
+                                <td>María López</td>
+                                <td>60%</td>
+                            </tr>
+                            <tr>
+                                <td>Carlos Sánchez</td>
+                                <td>90%</td>
+                            </tr>
+                            <tr>
+                                <td>Ana Gómez</td>
+                                <td>75%</td>
+                            </tr>
+                            <tr>
+                                <td>Luis Ramírez</td>
+                                <td>85%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cuarta sección: Botón para abrir modal de agregar actividad -->
+    <div id="Actividades" class="section"></div>
+        <h2>Actividades</h2>
+        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalActividad">
+            Agregar Actividad
+        </button>
+    </div>
+
+    <!-- Modal para agregar actividad -->
+    <div class="modal fade" id="modalActividad" tabindex="-1" aria-labelledby="modalActividadLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalActividadLabel">Agregar Actividad</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formActividad">
+                        <div class="mb-3">
+                            <label for="tipoActividad" class="form-label">Tipo de Actividad</label>
+                            <div>
+                                <input type="checkbox" id="tipoActividad" onchange="toggleCampos()"> Es un Quizz
+                            </div>
+                        </div>
+                        <!-- Campos para Actividad Normal -->
+                        <div id="camposActividad">
+                            <div class="mb-3">
+                                <label for="descripcionActividad" class="form-label">Descripción</label>
+                                <textarea class="form-control" id="descripcionActividad" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <!-- Campos para Quizz -->
+                        <div id="camposQuizz" class="hidden">
+                            <div class="mb-3">
+                                <label class="form-label">Pregunta 1</label>
+                                <input type="text" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Pregunta 2</label>
+                                <input type="text" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Pregunta 3</label>
+                                <input type="text" class="form-control">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarActividad()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.min.js"></script>
+    <!-- Bootstrap JS para los modales -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let graficaPastel;
+
+        // Función para mostrar la tabla correcta en el primer modal y actualizar la gráfica
+        function mostrarTabla(idTabla, porcentajes) {
+            // Ocultar todas las tablas
+            document.querySelectorAll('.grupo-tabla').forEach(tabla => {
+                tabla.classList.add('hidden');
+            });
+            // Mostrar la tabla seleccionada
+            document.getElementById(idTabla).classList.remove('hidden');
+
+            // Calcular el promedio de los porcentajes
+            const promedio = porcentajes.reduce((a, b) => a + b, 0) / porcentajes.length;
+
+            // Actualizar la gráfica de pastel
+            if (graficaPastel) {
+                graficaPastel.destroy(); // Destruir la gráfica anterior
+            }
+            const ctx = document.getElementById('graficaPastel').getContext('2d');
+            graficaPastel = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Completado', 'Pendiente'],
+                    datasets: [{
+                        data: [promedio, 100 - promedio],
+                        backgroundColor: ['#36a2eb', '#ff6384'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                }
+            });
+        }
+
+        // Función para alternar entre campos de actividad y quizz
+        function toggleCampos() {
+            const esQuizz = document.getElementById('tipoActividad').checked;
+            document.getElementById('camposActividad').classList.toggle('hidden', esQuizz);
+            document.getElementById('camposQuizz').classList.toggle('hidden', !esQuizz);
+        }
+
+        // Función para guardar la actividad (simulación)
+        function guardarActividad() {
+            alert('Actividad guardada correctamente.');
+            document.getElementById('formActividad').reset();
+            toggleCampos(); // Restablecer visibilidad de campos
+        }
+
+        // Función para cerrar sesión
+        function cerrar_sesion() {
+            // Redirigir a login.html
+            window.location.href = "login";
+        }
+
+        // Inicializar FullCalendar
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth', // Vista inicial (mes)
+                locale: 'es', // Idioma español
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                events: [
+                    {
+                        title: 'Evento 1',
+                        start: '2023-10-10'
+                    },
+                    {
+                        title: 'Evento 2',
+                        start: '2023-10-15',
+                        end: '2023-10-17'
+                    }
+                ]
+            });
+
+            calendar.render();
+        });
+    </script>
+
+</body>
+</html>

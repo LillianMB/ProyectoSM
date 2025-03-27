@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grupos</title>
+    
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-right: 15px;
+        }
+        .section {
+            margin: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #calendar {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .modal-content {
+            padding: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .grafica-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .grafica {
+            width: 100%; /* Reducir el tamaño del contenedor */
+            height: auto; /* Mantener la proporción */
+        }
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body>
+
+          <!-- Menú de navegación -->
+          <div class="navbar">
+            <a href="#Grafica">Grafica</a>
+            <a href="#calendario">Calendario</a>
+            <a href="#Equipo">Mi equipo</a>
+            <a href="#Actividades">Actividades</a>
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  Notificaciones <span id="cantNotif"></span>
+                </button>
+                <div class="dropdown-menu" id="notificaciones_lista">
+                </div>
+            </div>
+            <!-- Botón de Cerrar Sesión -->
+            <a href="#CerrarSesion"><button class="btn btn-danger logout-btn" onclick="cerrar_sesion()">Cerrar Sesión</button></a>
+        </div>
+
+    <div class="mt-4">
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="container mt-4" style="font-size: 25px;">
+                    <div class="row">Bienvenido, {{ usuario.username }}</div>
+                    <div class="row">Correo: {{ usuario.email }}</div>
+                    <div class="row">Rol:
+                        {% if usuario.rol %}
+                            {{ usuario.rol }}
+                        {% else %}
+                            No tienes rol asignado.
+                        {% endif %}
+                    </div>
+                    <div class="row">Equipo: 
+                        {% if equipo %}
+                            {{ equipo.Nombre }}
+                        {% else %}
+                            No tienes equipo asignado.
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="container mt-4">
+                    <div class="grafica">
+                        <canvas id="graficaPastel"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div id="calendario" class="section">
+                    <h2>Calendario</h2>
+                    <div id="calendar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+   
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="container mt-5">
+                <!-- Tabla de usuarios del equipo -->
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <td id="Equipo" colspan="3" class="text-center"><h6>Mi Equipo</h6></td>
+                        </tr>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Correo</th>
+                            <th>Rol</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in usuarios_equipo %}
+                            <tr>
+                                <td>{{ usuario.username }}</td>
+                                <td>{{ usuario.email }}</td>
+                                <td>{{ usuario.rol }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">No hay usuarios en el equipo.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-lg-6 mt-5">
+            <h6 id="Actividades" >Actividades</h6>
+            <table class="table table-striped table-hoover">
+                <tr>
+                    <th>Actvidad</th>
+                    <th>Fecha limite</th>
+                    <th>Subir</th>
+                    <th> Calificación</th>
+                </tr>
+                <tbody>
+                    {% for evento in calendario %}
+                    <tr>
+                        <td>{{ evento.idActividad.Nombre }}</td>
+                        <td>{{ evento.Fecha_limite }}</td>
+                        <td>
+                        {% if evento.puede_subir %}
+                            <button class="btn btn-primary btnSubirTarea col-12" data-id="{{ evento.idActividad.id }}">
+                                Subir Tarea
+                            </button>
+                        {% endif %}
+                        </td>
+                        <td>{{ evento.calificacion.Calificacion }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalSubirTarea" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Subir Tarea</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formSubirTarea">
+                        <input type="hidden" id="actividadId">
+                        <div id="contenedorArchivo">
+                            <label>Selecciona un archivo:</label>
+                            <input type="file" class="form-control" id="archivo">
+                        </div>
+                        <div id="contenedorQuizz" class="d-none">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Pregunta</th>
+                                        <th>Respuestas</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPreguntas"></tbody>
+                            </table>
+                        </div>
+                        <button type="submit" class="btn btn-success mt-3">Guardar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="actividadModal" tabindex="-1" role="dialog" aria-labelledby="actividadModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="actividadModalLabel">Detalles de la Actividad</h5>
+              <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <h4 id="actividadNombre"></h4>
+              <p id="actividadDescripcion"></p>
+              
+              <!-- Tabla de preguntas y respuestas -->
+              <table class="table" id="tabla_presguntas_respuestas">
+                <thead>
+                  <tr>
+                    <th>Pregunta</th>
+                    <th>Respuestas</th>
+                  </tr>
+                </thead>
+                <tbody id="actividadPreguntas">
+                  <!-- Aquí se llenarán las preguntas y respuestas -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.min.js"></script>
+    <!-- Bootstrap JS para los modales -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function obtenerNotificaciones() {
+            $.ajax({
+                url: "/obtenerNotificaciones",
+                method: "GET",
+                success: function (data) {
+                    $("#notificaciones_lista").empty();
+                    $("#cantNotif").empty();
+                    data.forEach(function(notif) { 
+                        console.log(notif);
+                        $("#notificaciones_lista").append(
+                            '<div style="border: 1px solid #ccc; padding: 10px; width: 400px;" class="dropdown-item">'+
+                            '<p>'+ notif.texto + '</p>'+
+                            '<small style="font-size: 0.8em; color: #555;">'+ notif.fechaEnvio + '</small>'+
+                            '</div>'
+                        );
+                    });
+                    $("#cantNotif").append("("+data.length+")");
+                },
+                error: function (error) {
+                    console.error("Error obteniendo notificaciones:", error);
+                }
+            });
+        }
+        obtenerNotificaciones();
+        setInterval(obtenerNotificaciones, 5000);
+        // Configuración de la gráfica de pastel
+        const ctx = document.getElementById('graficaPastel').getContext('2d');
+        const graficaPastel = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['{{Completado}}% Completado', '{{Restante}}% Restante'],
+                datasets: [{
+                    label: 'Porcentaje del cuso completado',
+                    data: [{{Completado}}, {{Restante}}],
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 99, 132, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 99, 132, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                aspectRatio: 1.5, // Ajustar la proporción de la gráfica
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Promedio de Calificaciones'
+                    }
+                }
+            }
+        });
+    
+        let calendar_global;
+        document.addEventListener("DOMContentLoaded", function () {
+        let calendarEl = document.getElementById("calendar");
+        calendar_global = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        events: function(info, successCallback, failureCallback) {
+            $.ajax({
+                url: '/obtener_calendario/',
+                data: {
+                    start: info.startStr,
+                    end: info.endStr
+                },
+                success: function(data) {
+                    successCallback(data);
+                },
+                error: function(error) {
+                    failureCallback(error);
+                }
+            });
+        },
+        eventClick: function(info) {
+            var actividadId = info.event.id; // Obtén el ID de la actividad
+            $.ajax({
+                url: '/obtener_actividad/',
+                data: { id: actividadId }, // Envia el ID de la actividad
+                success: function(data) {
+                    // Rellenar el modal con la información de la actividad
+                    $('#actividadNombre').text(data.nombre);
+                    $('#actividadDescripcion').text(data.descripcion);
+
+                    if(data.tipo == "Quizz")
+                        $("#tabla_presguntas_respuestas").show();
+                    else
+                        $("#tabla_presguntas_respuestas").hide();
+
+                    // Limpiar y agregar las preguntas y respuestas
+                    $('#actividadPreguntas').empty();
+                    data.preguntas.forEach(function(pregunta) {
+                        var fila = $('<tr>');
+                        var celdaPregunta = $('<td>').text(pregunta.texto);
+                        var celdaRespuestas = $('<td>');
+
+                        // Crear una lista de respuestas
+                        var listaRespuestas = $('<ul>');
+                        pregunta.respuestas.forEach(function(respuesta) {
+                            var item = $('<li>').text(respuesta.texto);
+                            listaRespuestas.append(item);
+                        });
+
+                        celdaRespuestas.append(listaRespuestas);
+                        fila.append(celdaPregunta, celdaRespuestas);
+                        $('#actividadPreguntas').append(fila);
+                    });
+
+                    // Mostrar el modal
+                    $('#actividadModal').modal('show');
+                },
+                error: function(error) {
+                    console.error('Error al obtener los detalles de la actividad:', error);
+                }
+            });
+        }
+    });
+        calendar_global.render();
+    });
+
+        $(document).ready(function() {
+            $(".btnSubirTarea").click(function() {
+                let actividadId = $(this).data("id");
+                $("#actividadId").val(actividadId);
+                $.get("/obtener_actividad/", { id: actividadId }, function(data) {
+                    if (data.tipo === "Quizz") {
+                        $("#contenedorArchivo").addClass("d-none");
+                        $("#contenedorQuizz").removeClass("d-none");
+                        let html = "";
+                        data.preguntas.forEach(pregunta => {
+                            html += `<tr>
+                                        <td>${pregunta.texto}</td>
+                                        <td>`;
+                            pregunta.respuestas.forEach(respuesta => {
+                                html += `<div class="form-check">
+                                            <input class="form-check-input" type="radio" name="pregunta_${pregunta.id}" value="${respuesta.id}">
+                                            <label class="form-check-label">${respuesta.texto}</label>
+                                        </div>`;
+                            });
+                            html += `</td></tr>`;
+                        });
+                        $("#tablaPreguntas").html(html);
+                    } else {
+                        $("#contenedorArchivo").removeClass("d-none");
+                        $("#contenedorQuizz").addClass("d-none");
+                    }
+                    $("#modalSubirTarea").modal("show");
+                });
+            });
+
+            $("#formSubirTarea").submit(function(e) {
+                e.preventDefault();
+                let actividadId = $("#actividadId").val();
+                let formData = new FormData();
+                formData.append("idActividad", actividadId);
+
+                if (!$("#contenedorQuizz").hasClass("d-none")) {
+                    let respuestas = [];
+                    $("#tablaPreguntas input[type='radio']:checked").each(function() {
+                        respuestas.push({ idPregunta: $(this).attr("name").split("_")[1], idRespuesta: $(this).val() });
+                    });
+                    formData.append("respuestas", JSON.stringify(respuestas));
+                } else {
+                    let archivo = $("#archivo")[0].files[0];
+                    if (archivo) {
+                        formData.append("archivo", archivo);
+                    }
+                }
+
+                $.ajax({
+                    url: "/guardar_tarea/",
+                    type: "POST",
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function() {
+                        $("#modalSubirTarea").modal("hide");
+                    }
+                });
+            });
+        });
+
+            // Función para cerrar sesión
+            function cerrar_sesion() {
+            // Redirigir a login.html
+            window.location.href = "/logout";
+        }
+    </script>
+
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

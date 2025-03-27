@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grupos</title>
+    
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-right: 15px;
+        }
+        .section {
+            margin: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #calendar {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .modal-content {
+            padding: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .grafica-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .grafica {
+            width: 30%; /* Reducir el tamaño del contenedor */
+            height: auto; /* Mantener la proporción */
+        }
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+    </style>
+
+</head>
+<body>
+
+      <!-- Menú de navegación -->
+      <div class="navbar">
+        <a href="#Grupos">Grupos</a>
+        <a href="#calendario">Calendario</a>
+        <a href="#Alumnos">Alumnos</a>
+        <a href="#Actividades">Actividades</a>
+        <!-- Botón de Cerrar Sesión -->
+        <a href="#CerrarSesion"><button class="btn btn-danger logout-btn" onclick="cerrar_sesion()">Cerrar Sesión</button></a>
+    </div>
+
+    <div class="container mt-4">
+        <h1 id="Grupos">Grupos</h1>
+        <div class="row">
+            <!-- Primera tabla -->
+            <div class="col-lg-6">
+                <table class="table table-bordered table-striped table-hover" id="gruposTable">
+                    <thead>
+                        <tr>
+                            <th>Nombre de Grupo</th>
+                            <th>Ver Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Aquí se llenarán los datos -->
+                    </tbody>
+                </table>
+                <!-- Botón debajo de la primera tabla -->
+            </div>
+
+            <!-- Segunda tabla -->
+            <div class="col-lg-6">
+                <div id="calendario" class="section">
+                    <h2>Calendario</h2>
+                    <div id="calendar"></div>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-success col-12 mt-2" data-toggle="modal" data-target="#agregarGrupoModal">Agregar Grupo</button>
+                    <button class="btn btn-success col-12 mt-2" data-toggle="modal" data-target="#agregarEquipoModal">Agregar Equipo</button>
+                    <button class="btn btn-warning col-12 mt-2" data-toggle="modal" data-target="#lista_alumnos_modal" onclick="cargarAlumnosLista()">Ver Alumnos</button>
+                    <button class="btn btn-primary col-12 mt-2" data-toggle="modal" data-target="#agregar_actividad_modal" onclick="resetActividadForm()">Agregar Actividad</button>
+                </div>
+            </div>
+            <div class="grafica">
+                <canvas id="graficaPastel"></canvas>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal -->
+    <div class="modal fade" id="detalleGrupoModal" tabindex="-1" role="dialog" aria-labelledby="detalleGrupoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detalleGrupoModalLabel">Detalle del Grupo</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-lg-6 col-md-12">
+                            <h5 id="nombreGrupo"></h5>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6 col-md-12">
+                            <button id="revolverRolesBtn" class="btn btn-danger btn-sm col-12">Reasignar Roles</button>
+                            <input type="hidden" id="idGrupoClickeado">
+                        </div>
+                    </div>
+                    <hr>
+                    <div id="equipos-del-grupo">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal fade" id="agregarEquipoModal" tabindex="-1" role="dialog" aria-labelledby="agregarEquipoModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="agregarEquipoModalLabel">Agregar Equipo</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <label for="Agregar-nombreEquipo">Nombre del Equipo</label>
+                    <input type="text" class="form-control" id="Agregar-nombreEquipo">
+                    <label for="seleccionar-grupo">Seleccione grupo</label>
+                    <select class="form-control" id="seleccionar-grupo"></select>
+                    <hr>
+                    <h6>Seleccionar Alumnos</h6>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Seleccionar</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alumnosTableEquipo">
+                            <!-- Los alumnos se llenarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarEquipo()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="agregarGrupoModal" tabindex="-1" role="dialog" aria-labelledby="agregarGrupoModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="agregarGrupoModalLabel">Agregar Grupo</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <label for="Agregar-nombreGrupo">Nombre del Grupo</label>
+                    <input type="text" class="form-control" id="Agregar-nombreGrupo">
+                    <h6>Seleccionar Alumnos</h6>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Seleccionar</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alumnosTable">
+                            <!-- Los alumnos se llenarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarGrupo()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="lista_alumnos_modal" tabindex="-1" role="dialog" aria-labelledby="listaAlumnosModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document"> <!-- Aumenta el tamaño del modal -->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="listaAlumnosModalLabel">Lista de Alumnos</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body overflow-auto" style="max-height: 80vh;"> <!-- Permite desplazamiento si es necesario -->
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Grupo</th>
+                                <th>Equipo</th>
+                                <th>Rol</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alumnosListaTable">
+                            <!-- Los alumnos se llenarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="agregar_actividad_modal" tabindex="-1" role="dialog" aria-labelledby="agregarActividadLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="agregarActividadLabel">Agregar Actividad</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="actividadForm">
+                        <div class="form-group">
+                            <label>Nombre de Actividad</label>
+                            <input type="text" class="form-control" id="nombre_actividad" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de Actividad:</label>
+                            <input type="date" class="form-control" id="fechaActividad" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Actividad</label><br>
+                            <input type="radio" name="tipo_actividad" value="Actividad" checked onclick="toggleQuizz(false)"> Actividad
+                            <input type="radio" name="tipo_actividad" value="Quizz" onclick="toggleQuizz(true)"> Quizz
+                        </div>
+                        <div class="form-group">
+                            <label>Descripción</label>
+                            <textarea class="form-control" id="descripcion_actividad" required></textarea>
+                        </div>
+                        <div id="quizz_section" style="display: none;">
+                            <button type="button" class="btn btn-info mb-2" onclick="agregarPregunta()">Agregar Pregunta</button>
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Pregunta</th>
+                                        <th>Respuestas</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="preguntasTable"></tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarActividad()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="actividadModal" tabindex="-1" role="dialog" aria-labelledby="actividadModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="actividadModalLabel">Detalles de la Actividad</h5>
+              <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <h5 id="actividadNombre"></h5>
+              <p id="actividadDescripcion"></p>
+              
+              <!-- Tabla de preguntas y respuestas -->
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Pregunta</th>
+                    <th>Respuestas</th>
+                  </tr>
+                </thead>
+                <tbody id="actividadPreguntas">
+                  <!-- Aquí se llenarán las preguntas y respuestas -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/es.min.js"></script>
+    <!-- Bootstrap JS para los modales -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+    let calendar_global;
+    document.addEventListener("DOMContentLoaded", function () {
+        let calendarEl = document.getElementById("calendar");
+        calendar_global = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        events: function(info, successCallback, failureCallback) {
+            $.ajax({
+                url: '/obtener_calendario/',
+                data: {
+                    start: info.startStr,
+                    end: info.endStr
+                },
+                success: function(data) {
+                    successCallback(data);
+                },
+                error: function(error) {
+                    failureCallback(error);
+                }
+            });
+        },
+        eventClick: function(info) {
+            var actividadId = info.event.id; // Obtén el ID de la actividad
+            $.ajax({
+                url: '/obtener_actividad/',
+                data: { id: actividadId }, // Envia el ID de la actividad
+                success: function(data) {
+                    // Rellenar el modal con la información de la actividad
+                    $('#actividadNombre').text(data.nombre);
+                    $('#actividadDescripcion').text(data.descripcion);
+
+                    // Limpiar y agregar las preguntas y respuestas
+                    $('#actividadPreguntas').empty();
+                    data.preguntas.forEach(function(pregunta) {
+                        var fila = $('<tr>');
+                        var celdaPregunta = $('<td>').text(pregunta.texto);
+                        var celdaRespuestas = $('<td>');
+
+                        // Crear una lista de respuestas
+                        var listaRespuestas = $('<ul>');
+                        pregunta.respuestas.forEach(function(respuesta) {
+                            var item = $('<li>').text(respuesta.texto);
+                            if (respuesta.eslaCorrecta) {
+                                item.append(' (Correcta)');
+                            }
+                            listaRespuestas.append(item);
+                        });
+
+                        celdaRespuestas.append(listaRespuestas);
+                        fila.append(celdaPregunta, celdaRespuestas);
+                        $('#actividadPreguntas').append(fila);
+                    });
+
+                    // Mostrar el modal
+                    $('#actividadModal').modal('show');
+                },
+                error: function(error) {
+                    console.error('Error al obtener los detalles de la actividad:', error);
+                }
+            });
+        }
+    });
+        calendar_global.render();
+    });
+
+    function toggleQuizz(show) {
+        document.getElementById("quizz_section").style.display = show ? "block" : "none";
+    }
+
+    function agregarPregunta() {
+        let id = Date.now();
+        let row = `
+            <tr id="pregunta_${id}">
+                <td><input type="text" class="form-control" name="pregunta" required></td>
+                <td>
+                    <div class="form-group">
+                        Respuesta correcta: <input type="radio" name="correcta_${id}" value="0"> <input type="text" class="form-control mb-1" name="respuesta_${id}">
+                        Respuesta correcta: <input type="radio" name="correcta_${id}" value="1"> <input type="text" class="form-control mb-1" name="respuesta_${id}">
+                        Respuesta correcta: <input type="radio" name="correcta_${id}" value="2"> <input type="text" class="form-control mb-1" name="respuesta_${id}">
+                    </div>
+                </td>
+                <td><button type="button" class="btn btn-danger" onclick="eliminarPregunta(${id})">X</button></td>
+            </tr>`;
+        document.getElementById("preguntasTable").insertAdjacentHTML("beforeend", row);
+    }
+
+    function eliminarPregunta(id) {
+        document.getElementById(`pregunta_${id}`).remove();
+    }
+
+    function resetActividadForm() {
+        document.getElementById("actividadForm").reset();
+        document.getElementById("preguntasTable").innerHTML = "";
+        toggleQuizz(false);
+    }
+
+    function guardarActividad() {
+        let Nombre = document.getElementById("nombre_actividad").value;
+        let tipo = document.querySelector('input[name="tipo_actividad"]:checked').value;
+        let Descripcion = document.getElementById("descripcion_actividad").value;
+        let Fecha_limite = document.getElementById("fechaActividad").value;
+
+        let preguntas = [];
+
+        if (tipo === "Quizz") {
+            document.querySelectorAll("#preguntasTable tr").forEach(tr => {
+                let pregunta = tr.querySelector('input[name="pregunta"]').value;
+                let respuestas = [...tr.querySelectorAll(`input[name^="respuesta_"]`)].map((r, index) => ({
+                    Texto: r.value,
+                    eslaCorrecta: tr.querySelector(`input[name^="correcta_"][value="${index}"]`).checked
+                }));
+                preguntas.push({ pregunta, respuestas });
+            });
+        }
+
+        let data = { Nombre, tipo, Descripcion, Fecha_limite, preguntas };
+
+        $.ajax({
+            url: "/agregar_actividad/",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function () {
+                alert("Actividad guardada");
+                $('#agregar_actividad_modal').modal('hide');
+                calendar_global.refetchEvents();
+            },
+            error: function () {
+                alert("Error al guardar la actividad");
+            }
+        });
+    }
+
+    function cargarAlumnosLista() {
+        $.ajax({
+            url: '/obtener_alumnos/',
+            method: 'GET',
+            success: function(data) {
+                let tbody = $('#alumnosListaTable');
+                tbody.empty();
+                data.forEach(alumno => {
+                    tbody.append(
+                        `<tr>
+                            <td>${alumno.username}</td>
+                            <td>${alumno.email}</td>
+                            <td>${alumno.idGrupo || 'Sin grupo'}</td>
+                            <td>${alumno.idEquipo || 'Sin equipo'}</td>
+                            <td>${alumno.rol|| 'Sin rol'}</td>
+                        </tr>`
+                    );
+                });
+            },
+            error: function() {
+                alert('Error al obtener los alumnos');
+            }
+        });
+    }
+    $('#agregarGrupoModal').on('show.bs.modal', function () {
+        cargarAlumnos();
+    });
+    $('#agregarEquipoModal').on('show.bs.modal', function () {
+        cargarAlumnosEquipo();
+    });
+
+    function cargarAlumnos() {
+        $.ajax({
+            url: '/obtener_alumnos/',
+            method: 'GET',
+            success: function(data) {
+                let alumnosFiltrados = data.filter(alumno => alumno.idGrupo === null);
+                let tbody = $('#alumnosTable');
+                tbody.empty();
+                if( alumnosFiltrados.length == 0){
+                    $('#alumnosTable').append("<tr><td colspan=3> No hay alumnos sin grupo asignado</td></tr>");
+                }
+                else{
+                    alumnosFiltrados.forEach(alumno => {
+                    tbody.append(
+                        `<tr>
+                            <td><input type="checkbox" class="alumno-checkbox" value="${alumno.id}"></td>
+                            <td>${alumno.username}</td>
+                            <td>${alumno.email}</td>
+                        </tr>`
+                    );
+                });
+                }
+            },
+            error: function() {
+                alert('Error al obtener los alumnos');
+            }
+        });
+    }
+    function cargarAlumnosEquipo() {
+        $.ajax({
+            url: '/obtener_alumnos/',
+            method: 'GET',
+            success: function(data) {
+                let alumnosFiltrados = data.filter(alumno => alumno.idEquipo === null);
+                let tbody = $('#alumnosTableEquipo');
+                tbody.empty();
+                if( alumnosFiltrados.length == 0){
+                    $('#alumnosTableEquipo').append("<tr><td colspan=3> No hay alumnos sin equipo asignado</td></tr>");
+                }
+                else{
+                    alumnosFiltrados.forEach(alumno => {
+                    tbody.append(
+                        `<tr>
+                            <td><input type="checkbox" class="alumnoequipo-checkbox" value="${alumno.id}"></td>
+                            <td>${alumno.username}</td>
+                            <td>${alumno.email}</td>
+                        </tr>`
+                        );
+                    });
+                }
+                        
+                $("#alumnosTableEquipo").find("input[type='checkbox']").on("change", function () {
+                    if ( $("#alumnosTableEquipo").find("input[type='checkbox']:checked").length > 4) {
+                        $(this).prop("checked", false);
+                        alert("Solo puedes seleccionar hasta 4 registros.");
+                    }
+                });
+
+            },
+            error: function() {
+                alert('Error al obtener los alumnos');
+            }
+        });
+    }
+    function guardarGrupo() {
+        let nombre = $('#Agregar-nombreGrupo').val().trim();
+        if (nombre === '') {
+            alert('El nombre del grupo no puede estar vacío');
+            return;
+        }
+
+        let alumnosSeleccionados = [];
+        $('.alumno-checkbox:checked').each(function() {
+            alumnosSeleccionados.push($(this).val());
+        });
+
+        $.ajax({
+            url: '/agrega_grupo/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ Nombre: nombre, usuarios: alumnosSeleccionados }),
+            success: function() {
+                alert('Grupo agregado correctamente');
+                $('#agregarGrupoModal').modal('hide');
+                actualiza_grupos();
+            },
+            error: function() {
+                alert('Error al guardar el grupo');
+            }
+        });
+    }
+
+    function guardarEquipo() {
+        let nombre = $('#Agregar-nombreEquipo').val().trim();
+        let idGrupo = $("#seleccionar-grupo").val();
+        if (nombre === '') {
+            alert('El nombre del equipo no puede estar vacío');
+            return;
+        }
+
+        let alumnosSeleccionados = [];
+        $('.alumnoequipo-checkbox:checked').each(function() {
+            alumnosSeleccionados.push($(this).val());
+        });
+
+        $.ajax({
+            url: '/agregar_equipo/',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ Nombre: nombre, usuarios: alumnosSeleccionados, idGrupo: idGrupo }),
+            success: function() {
+                alert('Equipo agregado correctamente');
+                $('#agregarEquipoModal').modal('hide');
+            },
+            error: function() {
+                alert('Error al guardar el equipo');
+            }
+        });
+    }
+
+    function actualiza_grupos(){
+        $('#gruposTable tbody').empty();
+        $("#seleccionar-grupo").empty();
+        $.ajax({
+                url: '/obtener_grupos/',  // URL de la API
+                method: 'GET',
+                success: function(data) {
+                    // Llenar la tabla con los datos obtenidos
+                    data.forEach(function(grupo) {
+                        $("#seleccionar-grupo").append("<option value='" + grupo.id + "'>" + grupo.Nombre + "</option>")
+                        $('#gruposTable tbody').append(
+                            '<tr>' +
+                                '<td>' + grupo.Nombre + '</td>' +
+                                '<td><button class="btn btn-primary" onclick="verDetalle(' + grupo.id + ')">Ver Detalle</button></td>' +
+                            '</tr>'
+                        );
+                    });
+                },
+                error: function() {
+                    alert('Error al obtener los grupos');
+                }
+            });
+    }
+    $(document).ready(function() {
+        $('#revolverRolesBtn').click(function() {
+            // Mostrar el alert
+            if (confirm("¿Estás seguro de que deseas revolver los roles?")) {
+                // Si el usuario acepta, ejecutar la API
+                var idGrupo = $("#idGrupoClickeado").val();  // Cambia esto con el ID real del grupo
+
+                $.ajax({
+                    url: '/revolver_roles/',  // URL de la API
+                    type: 'POST',
+                    data: { 
+                        'idGrupo': idGrupo, 
+                        'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()  // Si usas CSRF
+                    },
+                    success: function(response) {
+                        alert("Roles revueltos con éxito.");
+                        verDetalle(idGrupo);
+                    },
+                    error: function(error) {
+                        alert("Hubo un error al intentar revolver los roles.");
+                    }
+                });
+            } else {
+                // Si el usuario cancela, no hacer nada
+                console.log("Acción cancelada");
+            }
+        });
+
+        // Hacer la petición a la API para obtener los grupos
+        actualiza_grupos();
+    });
+
+        function crearGraficas(divs_contenedores){
+            $(divs_contenedores).find("canvas").each(function() {
+                var promedio = $(this).data("promedio")/1;
+                console.log($(this).data("promedio"));
+                const ctx = this.getContext('2d');
+                const graficaPastel = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: [(promedio).toFixed(2) + '% Completado', (100 - promedio).toFixed(2) + '% Restante'],
+                        datasets: [{
+                            label: 'Porcentaje del cuso completado',
+                            data: [(promedio), (100 - promedio)],
+                            backgroundColor: [
+                                'rgba(54, 162, 235, 0.2)',
+                                'rgba(255, 99, 132, 0.2)'
+                            ],
+                            borderColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        aspectRatio: 1.5, // Ajustar la proporción de la gráfica
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Promedio de Calificaciones'
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function creaTablaEquipos(datos){
+            var tablas_finales = [];
+            // Paso 1: Agrupar los objetos por idEquipo
+            const agrupados = datos.reduce((acc, obj) => {
+                if (!acc[obj.idEquipo]) {
+                    acc[obj.idEquipo] = [];
+                }
+                acc[obj.idEquipo].push(obj);
+                return acc;
+            }, {});
+
+            // Paso 2: Generar una tabla por cada idEquipo
+            for (const idEquipo in agrupados) {
+                // Crear la tabla
+                const tabla = document.createElement('table');
+                tabla.className = "table table-striped table-bordered";
+                tabla.border = '1';
+                tabla.style.marginBottom = '20px'; // Espacio entre tablas
+
+                // Crear el encabezado de la tabla
+                const encabezado = document.createElement('thead');
+                const filaEncabezado = document.createElement('tr');
+
+                // Columnas del encabezado
+                const columnas = ['Nombre del Alumno', 'Email', 'ID de Equipo', 'Rol', '% Calificación'];
+                columnas.forEach(col => {
+                    const celdaEncabezado = document.createElement('th');
+                    celdaEncabezado.textContent = col;
+                    filaEncabezado.appendChild(celdaEncabezado);
+                });
+
+                encabezado.appendChild(filaEncabezado);
+                tabla.appendChild(encabezado);
+
+                // Crear el cuerpo de la tabla
+                const cuerpo = document.createElement('tbody');
+
+                // Paso 3: Agregar un registro por cada objeto en el grupo
+                var suma_equipo = 0;
+                agrupados[idEquipo].forEach(obj => {
+                    const fila = document.createElement('tr');
+
+                    // Agregar las celdas con los datos correspondientes
+                    const celdas = [obj.username, obj.email, obj.idEquipo, obj.rol, (obj.promedio/1).toFixed(2)];
+                    suma_equipo = suma_equipo + (obj.promedio ? obj.promedio : 0);
+                    celdas.forEach(dato => {
+                        const celda = document.createElement('td');
+                        celda.textContent = dato;
+                        fila.appendChild(celda);
+                    });
+
+                    cuerpo.appendChild(fila);
+                });
+
+                tabla.appendChild(cuerpo);
+                
+                var div_equipo = document.createElement("div");
+                $(div_equipo).append("<div class='col-xl-6 col-lg-12 tabla'></div><div class='col-xl-6 col-lg-12 grafica'></div>").addClass("row section")
+                $(div_equipo).find(".tabla").append(tabla);
+
+                var canvas = document.createElement('canvas');
+                $(canvas).data("promedio", (suma_equipo/agrupados[idEquipo].length).toFixed(2));
+                $(div_equipo).find(".grafica").append(canvas);
+
+                // Agregar la tabla al cuerpo del documento (o a otro contenedor)
+                tablas_finales.push(div_equipo);
+            }
+            return tablas_finales;
+        }
+        function verDetalle(grupoId) {
+            $("#idGrupoClickeado").val(grupoId);
+            // Hacer la petición a la API para obtener los detalles del grupo
+            $.ajax({
+                url: '/obtener_grupo/' + grupoId + '/',  // URL de la API con el ID del grupo
+                method: 'GET',
+                success: function(data) {
+                    // Mostrar los detalles del grupo
+                    $('#nombreGrupo').text('Grupo: ' + data.Nombre);
+
+                    var tablas = creaTablaEquipos(data.Alumnos);
+                    $("#equipos-del-grupo").empty();
+                    $("#equipos-del-grupo").append(tablas);
+
+                    // Abrir el modal
+                    $('#detalleGrupoModal').modal('show');
+                    crearGraficas(tablas);
+                },
+                error: function() {
+                    alert('Error al obtener los detalles del grupo');
+                }
+            });
+        }
+
+         // Función para cerrar sesión
+         function cerrar_sesion() {
+            // Redirigir a login.html
+            window.location.href = "/logout";
+        }
+    </script>
+
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
